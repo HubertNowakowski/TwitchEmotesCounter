@@ -4,19 +4,19 @@ import datetime
 import sys
 import xlwt
 
-VERSION = '1.1'
+VERSION = '1.2'
 api_url='https://twitchemotes.com/api_cache/v3/'
 graph_url = 'https://twitchemotes.com/api/stats/total/graph'
 
 
 class Emote:
-    dailyCount = {}
 
     def __init__(self, id, code, set):
         self.id = id
         self.code = code
         self.set = set
         self.sum = 0
+        self.dailyCount={}
 
     def __gt__(self, emote2):
         return self.sum > emote2.sum
@@ -50,6 +50,9 @@ def inputDatetime():
         else:
             return date
 
+def convertUnix(date):
+    return int(date.strftime('%s'))
+
 
 def confirmInput(text):
     confirm = False
@@ -74,7 +77,7 @@ def printEmoteTable(channelName, channelId, emotes):
 
 
 def createXLSFile(emotes, channelName, start_date, end_date):
-    filename = 'emotes_count_{}{}.xls'.format(channelName,datetime.datetime.now().strftime('%Y-%m-%d'))
+    filename = 'emotes_counter_{}{}.xls'.format(channelName,datetime.datetime.now().strftime('%Y-%m-%d'))
     sorted_emotes = sorted(emotes, reverse=True)
     date_format = xlwt.XFStyle()
     date_format.num_format_str = 'D-MMM-YY'
@@ -86,6 +89,9 @@ def createXLSFile(emotes, channelName, start_date, end_date):
     sheet1.write(0,1,start_date, date_format)
     sheet1.write(1,0,'end date: ')
     sheet1.write(1,1,end_date, date_format)
+    start_date = convertUnix(start_date)
+    end_date = convertUnix(end_date)
+
     sheet1.write(2,0,'ID')
     sheet1.write(2,1,'CODE')
     sheet1.write(2,2,'SUM')
@@ -95,6 +101,20 @@ def createXLSFile(emotes, channelName, start_date, end_date):
         sheet1.write(y,1,emote.code)
         sheet1.write(y,2,emote.sum)
         y+=1
+
+    sheet2 = book.add_sheet('Daily data')
+    y=0
+    for emote in sorted_emotes:
+        sheet2.write(y,0, emote.code)
+        y+=1
+        for day, count in emote.dailyCount.items():
+            newday = day/1000                                                   #because API sets the date with 000 at the end, probably in ms instead of s
+            if newday >= start_date and newday <= end_date:
+                sheet2.write(y,0, newday)
+                sheet2.write(y,1, count)
+                sheet2.write(y,2, datetime.datetime.utcfromtimestamp(newday).strftime('%Y-%m-%d'), date_format)
+                y+=1
+        y+=2
 
     try:
         book.save(filename)
@@ -123,27 +143,23 @@ while True:
                 start_date = inputDatetime()
                 print('\nWhen do you want to end counting?')
                 end_date = inputDatetime()
-
-                start_unix = int(start_date.strftime('%s'))
-                end_unix   = int(end_date.strftime('%s'))
                 print( '\nChecking data form: {} to {} '.format(start_date, end_date) )
-
 
                 print("I'm getting the emote data from Graph API.")
                 emoteData = data[channelId]['emotes']
                 emotes = [ Emote( row['id'], row['code'], row['emoticon_set'] )
                            for row in emoteData]
-
                 for emote in emotes:
                     dailyData = requests.get(graph_url,params='id={}'.format(emote.id)).json()
                     for day in dailyData[0]['data']:
-                        emote.dailyCount[day[0]] = day[1]
-                    emote.calcSum(start_unix, end_unix)
+                        if day[0]/1000 >= convertUnix(start_date) and day[0]/1000 <= convertUnix(end_date):
+                            emote.dailyCount[day[0]] = day[1]
+                    emote.calcSum(convertUnix(start_date), convertUnix(end_date))
 
                 printEmoteTable(channelName, channelId, emotes)
 
                 if confirmInput('\nDo you want to create xls file?'):
-                        createXLSFile(emotes, channelName, start_date, end_date)
+                        createXLSFile(emotes,channelName,start_date,end_date)
         else:
             print('No data for channel {}.\n'.format(channelName))
     else:
