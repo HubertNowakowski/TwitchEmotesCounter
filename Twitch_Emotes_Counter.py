@@ -4,7 +4,11 @@ import datetime
 import sys
 import xlwt
 
-VERSION = '1.2'
+__author__ = "Hubert Nowakowski"
+__license__ = "GPL-3.0"
+__version__ = "1.2"
+
+
 api_url='https://twitchemotes.com/api_cache/v3/'
 graph_url = 'https://twitchemotes.com/api/stats/total/graph'
 
@@ -126,7 +130,7 @@ def createXLSFile(emotes, channelName, start_date, end_date):
 
 
 
-print('Twitch emotes counter {}\n'.format(VERSION))
+print('Twitch emotes counter {}\n'.format(__version__))
 
 while True:
     channelName = input('Please enter the channel name: ')
