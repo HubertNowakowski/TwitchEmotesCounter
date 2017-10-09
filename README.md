@@ -10,4 +10,4 @@ The user has to provide start and end point for emote counting.
 Results will be printed on screen in form of a table.
 The program is also able to save data into XLS file.
 
-In the future I plan to add information about daily usage of emotes and analise the data using pandas library.
+In the future I plan to add data analisys using pandas library and maybe GUI.
