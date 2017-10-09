@@ -28,6 +28,7 @@ class Emote:
             if newkey >= start_date and newkey <= end_date:
                 self.sum += value
 
+
 def getchannelId(data, name):
     try:
         id =  [ x for x in data if name in data[x]['channel_name'] ]
@@ -50,8 +51,9 @@ def inputDatetime():
         else:
             return date
 
+
 def convertUnix(date):
-    return int(date.strftime('%s'))
+    return int(date.timestamp())
 
 
 def confirmInput(text):
